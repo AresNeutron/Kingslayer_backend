@@ -50,7 +50,7 @@ def engine_move(game_manager: GameManager) -> Tuple[GameManager, dict]:
     promotion_sq = is_promotion(new_bb_state, is_engine_white)
     if promotion_sq is not None:
         # Promotion to queen by defalt, update this later
-        new_bb_state.promote_pawn(promotion_sq, f"{"white" if is_engine_white else "black"}_queen")
+        new_bb_state.promote_pawn(promotion_sq, f"{'white' if is_engine_white else 'black'}_queen")
 
     game_manager.update_game(new_bb_state)
 
