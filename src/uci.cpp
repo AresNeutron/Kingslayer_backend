@@ -10,11 +10,13 @@ Game game;
 Search search;
 
 enum class Command {
-    UCINEWGAME, ENGINEMOVES, GETBOARD, GETMOVES, USERMOVES, PROMOTE, QUIT, UNKNOWN
+    UCI, ISREADY, UCINEWGAME, ENGINEMOVES, GETBOARD, GETMOVES, USERMOVES, PROMOTE, QUIT, UNKNOWN
 };
 
 Command obtain_command(const std::string& token) {
     static const std::unordered_map<std::string, Command> command_map = {
+        {"uci", Command::UCI},
+        {"isready", Command::ISREADY},
         {"ucinewgame", Command::UCINEWGAME},
         {"enginego", Command::ENGINEMOVES},
         {"getboard", Command::GETBOARD},
@@ -37,6 +39,16 @@ void uci_loop() {
         iss >> token;
 
         switch (obtain_command(token)) {
+            case Command::UCI:
+                std::cout << "id name Kingslayer Engine\n"; // Nombre de tu motor
+                std::cout << "id author AresNeutron\n";      // Tu nombre
+                std::cout << "uciok\n"; // Indica que el protocolo UCI está listo
+                break;
+
+            case Command::ISREADY:
+                std::cout << "readyok\n";
+                break;
+
             case Command::UCINEWGAME:
                 game = Game();
                 search = Search();
@@ -97,8 +109,10 @@ void uci_loop() {
 
             default:
                 std::cout << "Unknown command: " << token << "\n";
+                std::cout << "readyok\n";
                 break;
         }
+        std::cout << std::flush;
     }
 }
 
@@ -107,6 +121,9 @@ int main() {
     init_pawn_lookups();
     init_ray_tables();
     generate_magic_bitboards();
+
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(NULL);
 
     uci_loop();
     return 0;

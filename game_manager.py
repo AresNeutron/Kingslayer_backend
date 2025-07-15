@@ -22,52 +22,119 @@ class GameManager:
 
     async def start(self) -> None:
         """Launch the engine and initialize UCI protocol."""
-        self.proc = await asyncio.create_subprocess_exec(
-            self.engine_path,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        # Send UCI initialization
-        await self._send_line('ucinewgame')
-        await self._read_until('readyok')
-        # Actualizar actividad después de inicializar
-        self.update_activity()
+        if self.proc and self.proc.returncode is None:
+            print("Engine already running.")
+            return
+
+        try:
+            print(f"Attempting to start engine from: {self.engine_path}")
+            self.proc = await asyncio.create_subprocess_exec(
+                self.engine_path,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            print("Engine subprocess launched.")
+
+            await self._send_line('uci')
+            await self._read_until('uciok')
+
+            await self._send_line('isready')
+            await self._read_until('readyok')
+
+            # Ahora sí, el comando de nuevo juego
+            await self._send_line('ucinewgame')
+            await self._read_until('readyok')
+
+            print("Engine initialized and ready.")
+            self.update_activity()
+
+        except FileNotFoundError:
+            print(f"ERROR: Engine executable not found at {self.engine_path}")
+            if self.proc:
+                self.proc.kill()
+                await self.proc.wait()
+            self.proc = None
+            raise RuntimeError(f"Engine not found at {self.engine_path}. Check PATH and permissions.")
+        except Exception as e:
+            print(f"ERROR starting or initializing engine: {e}")
+            if self.proc:
+                self.proc.kill()
+                await self.proc.wait()
+            self.proc = None
+            raise RuntimeError(f"Failed to start/initialize engine: {e}")
 
     async def stop(self) -> None:
         """Shut down the engine subprocess."""
-        if self.proc:
+        if self.proc and self.proc.returncode is None:
             try:
                 await self._send_line('quit')
-                # Esperar con timeout para evitar que se cuelgue
                 await asyncio.wait_for(self.proc.wait(), timeout=5.0)
+                print("Engine quit command sent and process waited.")
             except asyncio.TimeoutError:
-                # Si el proceso no termina, forzar cierre
+                print("Engine did not quit gracefully, terminating...")
                 if self.proc.returncode is None:
                     self.proc.terminate()
                     try:
                         await asyncio.wait_for(self.proc.wait(), timeout=2.0)
                     except asyncio.TimeoutError:
+                        print("Engine termination failed, killing...")
                         self.proc.kill()
                         await self.proc.wait()
             except Exception as e:
-                print(f"Error cerrando engine: {e}")
-                # Forzar cierre si hay error
+                print(f"Error while trying to quit/stop engine: {e}")
                 if self.proc and self.proc.returncode is None:
                     self.proc.terminate()
                     await self.proc.wait()
             finally:
                 self.proc = None
+                print("Engine process reference cleared.")
+        elif self.proc and self.proc.returncode is not None:
+            print(f"Engine already stopped with exit code: {self.proc.returncode}")
+            self.proc = None
+        else:
+            print("No engine process to stop.")
+            
 
     async def _send_line(self, line: str) -> None:
-        assert self.proc and self.proc.stdin
-        self.proc.stdin.write(f"{line}\n".encode())
-        await self.proc.stdin.drain()
+        if not self.proc or self.proc.stdin.is_closing() or self.proc.returncode is not None:
+            print(f"Engine stream is closed or not running. Attempting to restart for line: '{line}'")
+            await self.start()
+            if not self.proc or self.proc.stdin.is_closing() or self.proc.returncode is not None:
+                raise RuntimeError(f"Engine stream could not be restored to send line: '{line}'")
+
+        print(f"Sending to engine: {line}")
+        try:
+            self.proc.stdin.write(f"{line}\n".encode())
+            await self.proc.stdin.drain() 
+        except BrokenPipeError:
+            print(f"BrokenPipeError: Engine closed unexpectedly while sending '{line}'.")
+            await self.stop() 
+            await self.start() 
+            raise RuntimeError(f"Engine unexpectedly closed during write operation: '{line}'")
+        except Exception as e:
+            print(f"Error writing to engine: {e}")
+            await self.stop()
+            raise RuntimeError(f"Error writing to engine: {e}")
+
 
     async def _read_line(self) -> str:
-        assert self.proc and self.proc.stdout
-        raw = await self.proc.stdout.readline()
-        return raw.decode().strip()
+        if not self.proc or self.proc.stdout.at_eof():
+            raise RuntimeError("Engine stdout stream is closed or at EOF.")
+        try:
+            raw = await asyncio.wait_for(self.proc.stdout.readline(), timeout=10) # Timeout para la lectura
+            if not raw: # Si readline devuelve vacío, el stream se ha cerrado
+                raise EOFError("Engine stdout stream closed unexpectedly (empty read).")
+            return raw.decode().strip()
+        except asyncio.TimeoutError:
+            print("Timeout reading from engine.")
+            raise RuntimeError("Timeout reading from engine. Engine might be stuck or closed.")
+        except EOFError as e:
+            print(f"EOFError reading from engine: {e}")
+            raise
+        except Exception as e:
+            print(f"Error reading line from engine: {e}")
+            raise
 
     async def _read_until(self, keyword: str) -> List[str]:
         """Read lines until a line equals keyword or starts with it."""
