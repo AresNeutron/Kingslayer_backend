@@ -10,7 +10,7 @@ int main () {
     Search search;
 
     // Till we can use a depth of 10, we won't stop, damn it!
-    uint16_t result = search.find_best_move(game, 4);
+    uint16_t result = search.find_best_move(game, 7);
     std::cout << "result: " << result << std::endl;
 
     game.get_board_state().printBoardArray();

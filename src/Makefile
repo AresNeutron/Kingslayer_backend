@@ -20,8 +20,8 @@ SRCS = \
 
 OBJS = $(SRCS:.cpp=.o)
 
-test: $(OBJS)
+engine: $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 clean:
-	rm -f $(OBJS) test
+	rm -f $(OBJS) engine

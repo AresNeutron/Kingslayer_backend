@@ -111,6 +111,19 @@ bool Game::is_legal_move(int from_sq, int to_sq, Piece piece, int king_sq,
 
     // King moves: check if destination is attacked
     if (is_king) {
+        if (num_attackers >= 1) { // in check
+            uint64_t linear_attackers = board_state.getAttackersForSq(sideToMove, king_sq) 
+            & board_state.getLinearThreats(sideToMove);
+
+            while (linear_attackers) {
+                int attacker_sq = __builtin_ctzll(linear_attackers);
+                linear_attackers &= linear_attackers - 1;
+                uint64_t attacker_ray = ray_between_table[to_sq][attacker_sq];
+
+                if ((attacker_ray >> king_sq) & 1ULL) return false;
+            }
+        }
+
         return board_state.getAttackersForSq(sideToMove, to_sq) == 0;
     }
 

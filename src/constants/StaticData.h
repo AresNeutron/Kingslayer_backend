@@ -71,7 +71,7 @@ constexpr std::array<const char*, 5> eventMessages = {
     "none", "check", "checkmate", "stalemate", "promotion"
 };
 
-constexpr int MAX_DEPTH = 10; // This is the max secure depth by now
+constexpr int MAX_DEPTH = 5; // This is the max secure depth by now
 constexpr int MAX_MOVES = 28; // This number is an ideal case: queen in the middle of an empty board
 
 

@@ -113,10 +113,10 @@ public:
     // }
     
     // debug only
-    // void print_bitboard(uint64_t bb) const {
-    //     for (int i = 0; i < 64; ++i) {
-    //         std::cout << ((bb >> i) & 1) << " ";
-    //         if (i % 8 == 7) std::cout << std::endl;
-    //     }
-    // }
+    void print_bitboard(uint64_t bb) const {
+        for (int i = 0; i < 64; ++i) {
+            std::cout << ((bb >> i) & 1) << " ";
+            if (i % 8 == 7) std::cout << std::endl;
+        }
+    }
 };

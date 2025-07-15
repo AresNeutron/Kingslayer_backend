@@ -162,8 +162,8 @@ int Search::evaluate_board(const BoardState& board_state, Color sideToMove) cons
 
 
 void Search::engine_moves(Game& game) {
-    // Depth of 4 is the max by now
-    uint16_t best = find_best_move(game, 4);
+    // Depth of 5 is the max by now, works fine
+    uint16_t best = find_best_move(game, MAX_DEPTH);
 
     game.make_move(best);
     
