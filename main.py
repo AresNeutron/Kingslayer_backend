@@ -66,10 +66,10 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000/",
-        "https://kingslayer-frontend-fabio-quevedos-projects.vercel.app/",
-        "https://kingslayer-frontend.vercel.app/",
-        "https://kingslayer-frontend-git-main-fabio-quevedos-projects.vercel.app/",
+        "http://localhost:3000",
+        "https://kingslayer-frontend-fabio-quevedos-projects.vercel.app",
+        "https://kingslayer-frontend.vercel.app",
+        "https://kingslayer-frontend-git-main-fabio-quevedos-projects.vercel.app",
         "https://vercel.com/fabio-quevedos-projects/kingslayer-frontend/6MEisVT5ooqrUXjUbgExjkAeWBrA"
         ],
     allow_credentials=True,
